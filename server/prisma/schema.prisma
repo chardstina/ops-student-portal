@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATIONS
+  FINANCE
+  STUDENT
+}
+
+enum StudentStatus {
+  ACTIVE
+  GRADUATED
+  INACTIVE
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
+  AWAITING_APPROVAL
+  REJECTED
+}
+
+enum EnquirySource {
+  WEBSITE
+  WALK_IN
+  CALL
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  LOST
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  BIRTHDAY
+  PAYMENT_REMINDER
+  ENQUIRY_FOLLOWUP
+  RECEIPT
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(OPERATIONS)
+  createdAt    DateTime   @default(now())
+
+  student          Student?    @relation("UserStudent")
+  assignedEnquiries Enquiry[]  @relation("AssignedStaff")
+  createdExpenses  Expense[]   @relation("ExpenseCreator")
+  approvedExpenses Expense[]   @relation("ExpenseApprover")
+  approvedPayments Payment[]   @relation("PaymentApprover")
+}
+
+model Course {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  durationMonths Int
+  price         Decimal  @db.Decimal(12, 2)
+  discountPrice Decimal? @db.Decimal(12, 2)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  students Student[]
+}
+
+model Student {
+  id              String        @id // system-generated: {COURSE_CODE}-{YYYYMM}-{SEQ}
+  firstName       String
+  lastName        String
+  email           String        @unique
+  phone           String        @unique
+  dateOfBirth     DateTime
+  passportPhotoUrl String?
+  sponsorName     String?
+  sponsorContact  String?
+  courseId        String
+  course          Course        @relation(fields: [courseId], references: [id])
+  batch           String
+  status          StudentStatus @default(ACTIVE)
+  startDate       DateTime      @default(now())
+  completionDate  DateTime?
+  createdAt       DateTime      @default(now())
+
+  userId          String?       @unique
+  user            User?         @relation("UserStudent", fields: [userId], references: [id])
+
+  payments        Payment[]
+  installmentPlan InstallmentPlan?
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  studentId        String
+  student          Student       @relation(fields: [studentId], references: [id])
+  amount           Decimal       @db.Decimal(12, 2)
+  method           String
+  gatewayReference String?
+  status           PaymentStatus @default(PENDING)
+  dueDate          DateTime?
+  paidAt           DateTime?
+  receiptUrl       String?       // system-generated PDF receipt
+  proofUrl         String?       // student-uploaded proof of payment
+  accountId        String?       // company bank account paid into
+  account          BankAccount?  @relation(fields: [accountId], references: [id])
+  approvedById     String?
+  approvedBy       User?         @relation("PaymentApprover", fields: [approvedById], references: [id])
+  installmentId    String?       @unique
+  installment      Installment?  @relation(fields: [installmentId], references: [id])
+  createdAt        DateTime      @default(now())
+}
+
+model BankAccount {
+  id            String    @id @default(cuid())
+  bankName      String
+  accountName   String
+  accountNumber String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  payments      Payment[]
+}
+
+model InstallmentPlan {
+  id           String        @id @default(cuid())
+  studentId    String        @unique
+  student      Student       @relation(fields: [studentId], references: [id])
+  totalAmount  Decimal       @db.Decimal(12, 2)
+  createdAt    DateTime      @default(now())
+  installments Installment[]
+}
+
+model Installment {
+  id        String          @id @default(cuid())
+  planId    String
+  plan      InstallmentPlan @relation(fields: [planId], references: [id])
+  amount    Decimal         @db.Decimal(12, 2)
+  dueDate   DateTime
+  paid      Boolean         @default(false)
+  payment   Payment?
+}
+
+model Enquiry {
+  id               String        @id @default(cuid())
+  name             String
+  contact          String
+  courseInterest   String?
+  source           EnquirySource @default(WEBSITE)
+  status           EnquiryStatus @default(NEW)
+  assignedStaffId  String?
+  assignedStaff    User?         @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  nextFollowUpDate DateTime?
+  notes            String?
+  createdAt        DateTime      @default(now())
+}
+
+model Budget {
+  id              String   @id @default(cuid())
+  category        String
+  period          String   // e.g. "2026-Q2" or "2026-06"
+  allocatedAmount Decimal  @db.Decimal(12, 2)
+  expenses        Expense[]
+
+  @@unique([category, period])
+}
+
+model Expense {
+  id          String        @id @default(cuid())
+  category    String
+  amount      Decimal       @db.Decimal(12, 2)
+  description String?
+  documentUrl String?
+  status      ExpenseStatus @default(PENDING)
+  budgetId    String?
+  budget      Budget?       @relation(fields: [budgetId], references: [id])
+  createdById String
+  createdBy   User          @relation("ExpenseCreator", fields: [createdById], references: [id])
+  approvedById String?
+  approvedBy  User?         @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  createdAt   DateTime      @default(now())
+}
+
+model NotificationLog {
+  id        String              @id @default(cuid())
+  type      NotificationType
+  channel   NotificationChannel
+  recipient String
+  status    String              // SENT | FAILED
+  detail    String?
+  sentAt    DateTime            @default(now())
+}
