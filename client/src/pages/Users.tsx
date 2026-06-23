@@ -40,7 +40,7 @@ export default function Users() {
           <div>
             <label className="text-xs">Role</label>
             <select className="border rounded px-3 py-2 text-sm w-full" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              {roles.map((r) => <option key={r}>{r~</option>)}
+              {roles.map((r) => <option key={r}>{r}</option>)}
             </select>
           </div>
         </div>
