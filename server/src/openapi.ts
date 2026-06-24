@@ -1,0 +1,45 @@
+export const openapiSpec = {
+  openapi: "3.0.0",
+  info: { title: "Internal Operations & Student Management Portal API", version: "1.0.0" },
+  servers: [{ url: "/api" }],
+  components: {
+    securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },
+  },
+  security: [{ bearerAuth: [] }],
+  paths: {
+    "/auth/login": {
+      post: {
+        summary: "Login",
+        security: [],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object", properties: { email: { type: "string" }, password: { type: "string" } }, required: ["email", "password"] } } },
+        },
+        responses: { "200": { description: "Tokens + user" }, "401": { description: "Invalid" } },
+      },
+    },
+    "/auth/refresh": { post: { summary: "Refresh access token", security: [] } },
+    "/auth/me": { get: { summary: "Current user" } },
+    "/students": {
+      get: { summary: "List/search students (staff)" },
+      post: { summary: "Create student (auto-ID, duplicate-checked)" },
+    },
+    "/students/{id}": { get: { summary: "Get student" }, patch: { summary: "Update student (ID immutable)" } },
+    "/students/{id}/dashboard": { get: { summary: "Student dashboard with financial summary" } },
+    "/courses": { get: { summary: "List courses" }, post: { summary: "Create course (Admin/Finance)" } },
+    "/courses/{id}": { patch: { summary: "Update course/pricing (Admin/Finance)" }, delete: { summary: "Deactivate (Admin)" } },
+    "/payments": { post: { summary: "Record manual payment (Admin/Finance) + receipt PDF" } },
+    "/payments/checkout": { post: { summary: "Create Stripe payment intent" } },
+    "/payments/student/{studentId}": { get: { summary: "Payment history" } },
+    "/payments/stats/overview": { get: { summary: "Revenue + outstanding (Admin/Finance)" } },
+    "/enquiries": { get: { summary: "List enquiries" }, post: { summary: "Create enquiry" } },
+    "/enquiries/public": { post: { summary: "Public website enquiry capture", security: [] } },
+    "/enquiries/{id}": { patch: { summary: "Update enquiry/status/assignment" } },
+    "/enquiries/stats/conversion": { get: { summary: "Conversion-rate report" } },
+    "/expenses": { get: { summary: "List expenses" }, post: { summary: "Log expense" } },
+    "/expenses/{id}/decision": { patch: { summary: "Approve/Reject (Admin/Finance)" } },
+    "/expenses/reports/budget-vs-actual": { get: { summary: "Budget vs actual report" } },
+    "/notifications/logs": { get: { summary: "Notification logs (Admin)" } },
+    "/webhooks/stripe": { post: { summary: "Stripe webhook (raw body)", security: [] } },
+  },
+} as const;
