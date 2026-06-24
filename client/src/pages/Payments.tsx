@@ -9,8 +9,17 @@ export default function Payments() {
   const students = useQuery({ queryKey: ["students"], queryFn: async () => (await api.get("/students")).data });
 
   const [studentId, setStudentId] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("CASH");
+
+  const term = studentSearch.trim().toLowerCase();
+  const filteredStudents = (students.data ?? []).filter((s: any) =>
+    !term ||
+    [s.firstName, s.lastName, `${s.firstName} ${s.lastName}`, s.id, s.email, s.phone]
+      .filter(Boolean)
+      .some((v: string) => String(v).toLowerCase().includes(term))
+  );
 
   const history = useQuery({
     queryKey: ["pay-history", studentId],
@@ -49,7 +58,8 @@ export default function Payments() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Payments</h1>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        <Stat label="Total Billed" value={overview.data ? money(overview.data.totalBilled) : "…"} />
         <Stat label="Total Revenue" value={overview.data ? money(overview.data.totalRevenue) : "…"} />
         <Stat label="Total Outstanding" value={overview.data ? money(overview.data.totalOutstanding) : "…"} />
       </div>
@@ -83,9 +93,10 @@ export default function Payments() {
         <div className="grid grid-cols-4 gap-3 items-end">
           <div>
             <label className="text-xs">Student</label>
+            <Input placeholder="Search name, ID, email…" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-1" />
             <select className="border rounded px-3 py-2 text-sm w-full" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-              <option value="">Select…</option>
-              {students.data?.map((s: any) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.id})</option>)}
+              <option value="">Select… ({filteredStudents.length})</option>
+              {filteredStudents.map((s: any) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.id})</option>)}
             </select>
           </div>
           <div><label className="text-xs">Amount</label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
