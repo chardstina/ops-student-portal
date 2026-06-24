@@ -178,4 +178,64 @@ router.patch(
 
 // Payment history per student
 router.get(
-  "/student/:s
+  "/student/:studentId",
+  asyncHandler(async (req, res) => {
+    if (req.user!.role === "STUDENT") {
+      const me = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+      if (!me || me.id !== req.params.studentId) throw new HttpError(403, "Forbidden");
+    }
+    res.json(
+      await prisma.payment.findMany({ where: { studentId: req.params.studentId }, orderBy: { createdAt: "desc" } })
+    );
+  })
+);
+
+// Finance dashboard: revenue + outstanding
+router.get(
+  "/stats/overview",
+  requireRole("ADMIN", "FINANCE"),
+  asyncHandler(async (_req, res) => {
+    // Outstanding is computed across all registered students: each student's
+    // effective course fee minus what they have actually paid (approved only).
+    const students = await prisma.student.findMany({
+      include: {
+        course: { select: { price: true, discountPrice: true } },
+        payments: { where: { status: "PAID" }, select: { amount: true } },
+      },
+    });
+    let totalBilled = 0;
+    let totalRevenue = 0;
+    let totalOutstanding = 0;
+    for (const s of students) {
+      const price = Number(s.course.price);
+      const discount = s.course.discountPrice != null ? Number(s.course.discountPrice) : 0;
+      const effectivePrice = discount > 0 ? discount : price;
+      const paid = s.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      totalBilled += effectivePrice;
+      totalRevenue += paid;
+      totalOutstanding += Math.max(effectivePrice - paid, 0);
+    }
+    res.json({ totalRevenue, totalBilled, totalOutstanding });
+  })
+);
+
+// Create Stripe checkout/payment intent for online payment
+router.post(
+  "/checkout",
+  asyncHandler(async (req, res) => {
+    const { studentId, amount } = z.object({ studentId: z.string(), amount: z.number().positive() }).parse(req.body);
+    if (!stripe) throw new HttpError(503, "Stripe not configured");
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: config.stripe.currency,
+      metadata: { studentId },
+    });
+    // record as pending
+    await prisma.payment.create({
+      data: { studentId, amount, method: "STRIPE", status: "PENDING", gatewayReference: intent.id },
+    });
+    res.json({ clientSecret: intent.client_secret });
+  })
+);
+
+export default router;
