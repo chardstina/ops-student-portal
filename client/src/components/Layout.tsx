@@ -19,7 +19,7 @@ export function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
-        <div className="font-semibold">🎓 Ops & Student Portal</div>
+        <div className="font-semibold">🎓 NIIT PORTAL</div>
         <div className="flex items-center gap-4 text-sm">
           <span className="opacity-80">{user?.name} · {user?.role}</span>
           <button

@@ -89,9 +89,9 @@ async function main() {
   if (accountsExist === 0) {
     await prisma.bankAccount.createMany({
       data: [
-        { bankName: "First Bank", accountName: "Training Institute Ltd", accountNumber: "3011223344" },
-        { bankName: "GTBank", accountName: "Training Institute Ltd", accountNumber: "0123456789" },
-        { bankName: "Zenith Bank", accountName: "Training Institute Ltd", accountNumber: "1010101010" },
+        { bankName: "Fidelity", accountName: "Cybershield nexus", accountNumber: "5601418831" },
+        { bankName: "FCMB", accountName: "Cybershield nexus", accountNumber: "2006755064" },
+        { bankName: "Tajbank", accountName: "CYBERSHIELD NEXUS LIMITED", accountNumber: "0012186007" },
       ],
     });
   }

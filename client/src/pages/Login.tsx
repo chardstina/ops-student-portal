@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100">
       <form onSubmit={submit} className="bg-white p-8 rounded-lg shadow w-96 space-y-4">
-        <h1 className="text-xl font-bold text-center">🎓 Ops & Student Portal</h1>
+        <h1 className="text-xl font-bold text-center">🎓 NIIT PORTAL</h1>
         {error && <div className="text-red-600 text-sm">{error}</div>}
         <div>
           <label className="text-sm">Email</label>
